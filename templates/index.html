@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>勉強サポート</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+      background: #f0f4ff;
+      color: #333;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 24px;
+      color: #4a6fa5;
+    }
+
+    .container { max-width: 600px; margin: 0 auto; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #4a6fa5;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #dce8ff;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    .upload-area {
+      border: 2px dashed #aac4ff;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      background: #f8f9ff;
+      transition: background 0.2s;
+    }
+
+    .upload-area:hover { background: #eef2ff; }
+    .upload-area p { color: #888; font-size: 14px; margin-top: 8px; }
+
+    #preview {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    input[type="file"] { display: none; }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #4a6fa5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #3a5a8a; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    #loading {
+      display: none;
+      text-align: center;
+      color: #999;
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    #quiz-card { display: none; }
+
+    .question-block {
+      margin-bottom: 20px;
+      padding: 16px;
+      background: #f8f9ff;
+      border-radius: 10px;
+      border-left: 4px solid #4a6fa5;
+    }
+
+    .question-text {
+      font-size: 15px;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .answer-input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .check-btn {
+      padding: 8px 20px;
+      background: #4a6fa5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .result-msg {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      display: none;
+    }
+
+    .correct { color: #2ecc71; }
+    .incorrect { color: #e74c3c; }
+
+    .btn-reset {
+      width: 100%;
+      padding: 12px;
+      background: white;
+      color: #4a6fa5;
+      border: 2px solid #4a6fa5;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+
+    .score-area {
+      text-align: center;
+      padding: 16px;
+      background: #eef2ff;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #4a6fa5;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📚 勉強サポート</h1>
+
+    <div class="card" id="form-card">
+      <div class="section-title">設定</div>
+
+      <div class="form-group">
+        <label>科目</label>
+        <select id="subject">
+          <option value="社会">社会</option>
+          <option value="理科">理科</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>問題数</label>
+        <select id="count">
+          <option value="5">5問</option>
+          <option value="10">10問</option>
+          <option value="15">15問</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>ワークの写真</label>
+        <div class="upload-area" onclick="document.getElementById('image-input').click()" id="upload-area">
+          <img id="preview" alt="プレビュー" style="display:none; width:100%; border-radius:8px;">
+          <div id="upload-placeholder">
+            <div style="font-size:36px;">📷</div>
+            <p>タップして写真を選択</p>
+          </div>
+        </div>
+        <input type="file" id="image-input" accept="image/*" capture="environment" onchange="previewImage(event)">
+      </div>
+
+      <button class="btn" onclick="generate()">✨ 問題を作る</button>
+    </div>
+
+    <div id="loading">問題を生成中です。少々お待ちください...<br>（10〜20秒ほどかかります）</div>
+
+    <div class="card" id="quiz-card">
+      <div class="section-title">穴埋め問題</div>
+      <div class="score-area" id="score-area"></div>
+      <div id="questions-area"></div>
+      <button class="btn" id="submit-btn" onclick="submitAll()" style="margin-bottom:12px;">✅ 全部答え合わせする</button>
+      <button class="btn-reset" onclick="reset()">🔄 もう一度やり直す</button>
+    </div>
+  </div>
+
+  <script>
+    let answers = [];
+
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('preview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        document.getElementById('upload-placeholder').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function generate() {
+      const image = document.getElementById('image-input').files[0];
+      if (!image) {
+        alert('写真を選択してください。');
+        return;
+      }
+
+      const subject = document.getElementById('subject').value;
+      const count = document.getElementById('count').value;
+
+      document.querySelector('.btn').disabled = true;
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('quiz-card').style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('subject', subject);
+      formData.append('count', count);
+
+      const res = await fetch('/generate', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      document.getElementById('loading').style.display = 'none';
+      document.querySelector('.btn').disabled = false;
+
+      answers = data.questions;
+      renderQuestions(data.questions);
+
+      document.getElementById('quiz-card').style.display = 'block';
+      document.getElementById('score-area').style.display = 'none';
+      document.getElementById('quiz-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderQuestions(questions) {
+      const area = document.getElementById('questions-area');
+      area.innerHTML = '';
+      questions.forEach((q, i) => {
+        area.innerHTML += `
+          <div class="question-block" id="q-${i}">
+            <div class="question-text">Q${i+1}. ${q.question}</div>
+            <input class="answer-input" type="text" id="ans-${i}" placeholder="答えを入力">
+            <div class="result-msg" id="msg-${i}"></div>
+          </div>
+        `;
+      });
+    }
+
+    function submitAll() {
+      let correct = 0;
+      answers.forEach((q, i) => {
+        const userAns = document.getElementById(`ans-${i}`).value.trim();
+        const msg = document.getElementById(`msg-${i}`);
+        msg.style.display = 'block';
+        const normalize = s => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).trim();
+        if (normalize(userAns) === normalize(q.answer)) {
+          correct++;
+          msg.textContent = '⭕ 正解！';
+          msg.className = 'result-msg correct';
+        } else {
+          msg.textContent = `❌ 不正解　正解：${q.answer}`;
+          msg.className = 'result-msg incorrect';
+        }
+      });
+
+      const scoreArea = document.getElementById('score-area');
+      scoreArea.style.display = 'block';
+      scoreArea.textContent = `結果：${answers.length}問中 ${correct}問正解！`;
+      document.getElementById('submit-btn').style.display = 'none';
+      scoreArea.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function reset() {
+      document.getElementById('quiz-card').style.display = 'none';
+      document.getElementById('submit-btn').style.display = 'block';
+      document.getElementById('image-input').value = '';
+      document.getElementById('preview').style.display = 'none';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
