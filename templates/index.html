@@ -13,16 +13,20 @@
     .section-title { font-size: 13px; font-weight: bold; color: #4a6fa5; margin-bottom: 14px; padding-bottom: 6px; border-bottom: 2px solid #dce8ff; }
     .form-group { margin-bottom: 16px; }
     label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
-    select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
+    select, input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; }
     .upload-area { border: 2px dashed #aac4ff; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; background: #f8f9ff; }
     .upload-area:hover { background: #eef2ff; }
     .upload-area p { color: #888; font-size: 14px; margin-top: 8px; }
     #preview-area { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     #preview-area img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
     input[type="file"] { display: none; }
-    .btn { width: 100%; padding: 14px; background: #4a6fa5; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    .btn { width: 100%; padding: 14px; background: #4a6fa5; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 8px; }
     .btn:hover { background: #3a5a8a; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .btn-green { background: #27ae60; }
+    .btn-green:hover { background: #1e8449; }
+    .btn-orange { background: #e67e22; }
+    .btn-orange:hover { background: #ca6f1e; }
     #loading { display: none; text-align: center; color: #999; padding: 20px; font-size: 14px; }
     #quiz-card { display: none; }
     .question-block { margin-bottom: 20px; padding: 16px; background: #f8f9ff; border-radius: 10px; border-left: 4px solid #4a6fa5; }
@@ -31,72 +35,128 @@
     .result-msg { margin-top: 8px; font-size: 14px; font-weight: bold; display: none; }
     .correct { color: #2ecc71; }
     .incorrect { color: #e74c3c; }
-    .btn-reset { width: 100%; padding: 12px; background: white; color: #4a6fa5; border: 2px solid #4a6fa5; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 12px; }
-    .score-area { text-align: center; padding: 16px; background: #eef2ff; border-radius: 10px; margin-bottom: 20px; font-size: 16px; font-weight: bold; color: #4a6fa5; display: none; }
+    .btn-reset { width: 100%; padding: 12px; background: white; color: #4a6fa5; border: 2px solid #4a6fa5; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+    .score-area { text-align: center; padding: 16px; background: #eef2ff; border-radius: 10px; margin-bottom: 16px; font-size: 16px; font-weight: bold; color: #4a6fa5; display: none; }
     #question-type-group { display: none; }
+
+    /* ユーザー選択 */
+    .user-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .user-btn { padding: 10px 20px; border-radius: 20px; border: 2px solid #4a6fa5; background: white; color: #4a6fa5; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .user-btn.selected { background: #4a6fa5; color: white; }
+    .user-btn:hover { background: #eef2ff; }
+    .user-btn.selected:hover { background: #3a5a8a; }
+    .new-user-area { display: flex; gap: 8px; }
+    .new-user-area input { flex: 1; }
+    .new-user-area button { padding: 10px 16px; background: #4a6fa5; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+
+    /* フィードバック */
+    .feedback-area { background: #fff8e1; border-left: 4px solid #f39c12; border-radius: 10px; padding: 16px; margin-bottom: 16px; font-size: 14px; line-height: 1.8; display: none; }
+    .feedback-area .feedback-title { font-weight: bold; color: #e67e22; margin-bottom: 8px; }
+
+    /* 現在のユーザー表示 */
+    .current-user { text-align: center; font-size: 13px; color: #888; margin-bottom: 16px; }
+    .current-user span { font-weight: bold; color: #4a6fa5; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>📚 勉強サポート</h1>
-    <div class="card" id="form-card">
-      <div class="section-title">設定</div>
 
-      <div class="form-group">
-        <label>科目</label>
-        <select id="subject" onchange="updateQuestionType()">
-          <option value="社会">社会</option>
-          <option value="理科">理科</option>
-          <option value="国語（漢字）">国語（漢字）</option>
-          <option value="英語（英単語）">英語（英単語）</option>
-        </select>
+    <!-- ユーザー選択カード -->
+    <div class="card" id="user-card">
+      <div class="section-title">👤 だれが使う？</div>
+      <div class="user-list" id="user-list"></div>
+      <div class="new-user-area">
+        <input type="text" id="new-user-input" placeholder="新しい名前を追加">
+        <button onclick="addUser()">追加</button>
       </div>
-
-      <div class="form-group" id="question-type-group">
-        <label>問題の種類</label>
-        <select id="question_type">
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>問題数</label>
-        <select id="count">
-          <option value="5">5問</option>
-          <option value="10" selected>10問</option>
-          <option value="20">20問</option>
-          <option value="30">30問</option>
-          <option value="50">50問</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>ワーク・教科書の写真（複数選択OK）</label>
-        <div class="upload-area" onclick="document.getElementById('image-input').click()">
-          <div id="upload-placeholder">
-            <div style="font-size:36px;">📷</div>
-            <p>タップして写真を選択（複数枚OK）</p>
-          </div>
-          <div id="preview-area"></div>
-        </div>
-        <input type="file" id="image-input" accept="image/*" multiple onchange="previewImages(event)">
-      </div>
-
-      <button class="btn" onclick="generate()">✨ 問題を作る</button>
     </div>
 
-    <div id="loading">問題を生成中です。少々お待ちください...<br>（写真の枚数によって時間がかかります）</div>
+    <!-- メインフォームカード -->
+    <div id="main-section" style="display:none;">
+      <div class="current-user">勉強中：<span id="current-user-name"></span>
+        　<a href="#" onclick="changeUser()" style="font-size:12px; color:#aaa;">変更</a>
+      </div>
 
-    <div class="card" id="quiz-card">
-      <div class="section-title">問題</div>
-      <div class="score-area" id="score-area"></div>
-      <div id="questions-area"></div>
-      <button class="btn" id="submit-btn" onclick="submitAll()" style="margin-bottom:12px;">✅ 全部答え合わせする</button>
-      <button class="btn-reset" onclick="reset()">🔄 もう一度やり直す</button>
+      <div class="card" id="form-card">
+        <div class="section-title">設定</div>
+
+        <div class="form-group">
+          <label>モード</label>
+          <select id="mode" onchange="updateMode()">
+            <option value="normal">📷 写真から問題を作る</option>
+            <option value="review">🔁 苦手問題を復習する</option>
+          </select>
+        </div>
+
+        <div id="normal-mode-section">
+          <div class="form-group">
+            <label>科目</label>
+            <select id="subject" onchange="updateQuestionType()">
+              <option value="社会">社会</option>
+              <option value="理科">理科</option>
+              <option value="国語（漢字）">国語（漢字）</option>
+              <option value="英語（英単語）">英語（英単語）</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="question-type-group">
+            <label>問題の種類</label>
+            <select id="question_type"></select>
+          </div>
+
+          <div class="form-group">
+            <label>問題数</label>
+            <select id="count">
+              <option value="5">5問</option>
+              <option value="10" selected>10問</option>
+              <option value="20">20問</option>
+              <option value="30">30問</option>
+              <option value="50">50問</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>ワーク・教科書の写真（複数選択OK）</label>
+            <div class="upload-area" onclick="document.getElementById('image-input').click()">
+              <div id="upload-placeholder">
+                <div style="font-size:36px;">📷</div>
+                <p>タップして写真を選択（複数枚OK）</p>
+              </div>
+              <div id="preview-area"></div>
+            </div>
+            <input type="file" id="image-input" accept="image/*" multiple onchange="previewImages(event)">
+          </div>
+
+          <button class="btn" onclick="generate()">✨ 問題を作る</button>
+        </div>
+
+        <div id="review-mode-section" style="display:none;">
+          <button class="btn btn-orange" onclick="loadReview()">🔁 苦手問題を読み込む</button>
+        </div>
+      </div>
+
+      <div id="loading">問題を生成中です。少々お待ちください...<br>（写真の枚数によって時間がかかります）</div>
+
+      <div class="card" id="quiz-card">
+        <div class="section-title" id="quiz-title">問題</div>
+        <div class="score-area" id="score-area"></div>
+        <div class="feedback-area" id="feedback-area">
+          <div class="feedback-title">📊 Geminiからのフィードバック</div>
+          <div id="feedback-text"></div>
+        </div>
+        <div id="questions-area"></div>
+        <button class="btn" id="submit-btn" onclick="submitAll()" style="margin-bottom:8px;">✅ 全部答え合わせする</button>
+        <button class="btn-reset" onclick="reset()">🔄 もう一度やり直す</button>
+      </div>
     </div>
   </div>
 
   <script>
     let answers = [];
+    let currentUser = null;
+    let currentSubject = "";
+    let isReviewMode = false;
 
     const questionTypes = {
       "社会": [],
@@ -104,6 +164,68 @@
       "国語（漢字）": ["読み", "書き", "両方"],
       "英語（英単語）": ["日本語→英語", "英語→日本語", "両方"],
     };
+
+    // ===== ユーザー管理 =====
+    async function loadUsers() {
+      const res = await fetch('/users');
+      const data = await res.json();
+      renderUsers(data.users);
+    }
+
+    function renderUsers(users) {
+      const list = document.getElementById('user-list');
+      list.innerHTML = '';
+      if (users.length === 0) {
+        list.innerHTML = '<p style="color:#aaa; font-size:13px;">まだ登録されていません</p>';
+        return;
+      }
+      users.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'user-btn';
+        btn.textContent = name;
+        btn.onclick = () => selectUser(name);
+        list.appendChild(btn);
+      });
+    }
+
+    async function addUser() {
+      const input = document.getElementById('new-user-input');
+      const name = input.value.trim();
+      if (!name) return;
+      const res = await fetch('/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      input.value = '';
+      loadUsers();
+    }
+
+    function selectUser(name) {
+      currentUser = name;
+      document.getElementById('current-user-name').textContent = name;
+      document.getElementById('main-section').style.display = 'block';
+      document.getElementById('user-card').style.display = 'none';
+      document.getElementById('main-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function changeUser() {
+      currentUser = null;
+      document.getElementById('user-card').style.display = 'block';
+      document.getElementById('main-section').style.display = 'none';
+      document.getElementById('quiz-card').style.display = 'none';
+    }
+
+    // ===== モード切替 =====
+    function updateMode() {
+      const mode = document.getElementById('mode').value;
+      isReviewMode = mode === 'review';
+      document.getElementById('normal-mode-section').style.display = isReviewMode ? 'none' : 'block';
+      document.getElementById('review-mode-section').style.display = isReviewMode ? 'block' : 'none';
+      document.getElementById('quiz-card').style.display = 'none';
+    }
 
     function updateQuestionType() {
       const subject = document.getElementById('subject').value;
@@ -139,21 +261,22 @@
       }
     }
 
+    // ===== 問題生成（通常モード）=====
     async function generate() {
       const files = document.getElementById('image-input').files;
       if (!files.length) { alert('写真を選択してください。'); return; }
 
-      const subject = document.getElementById('subject').value;
+      currentSubject = document.getElementById('subject').value;
       const question_type = document.getElementById('question_type').value || '';
       const count = document.getElementById('count').value;
 
-      document.querySelector('.btn').disabled = true;
+      document.querySelector('#normal-mode-section .btn').disabled = true;
       document.getElementById('loading').style.display = 'block';
       document.getElementById('quiz-card').style.display = 'none';
 
       const formData = new FormData();
       Array.from(files).forEach(f => formData.append('images', f));
-      formData.append('subject', subject);
+      formData.append('subject', currentSubject);
       formData.append('question_type', question_type);
       formData.append('count', count);
 
@@ -161,12 +284,34 @@
       const data = await res.json();
 
       document.getElementById('loading').style.display = 'none';
-      document.querySelector('.btn').disabled = false;
+      document.querySelector('#normal-mode-section .btn').disabled = false;
 
       answers = data.questions;
+      document.getElementById('quiz-title').textContent = '問題';
       renderQuestions(data.questions);
       document.getElementById('quiz-card').style.display = 'block';
       document.getElementById('score-area').style.display = 'none';
+      document.getElementById('feedback-area').style.display = 'none';
+      document.getElementById('submit-btn').style.display = 'block';
+      document.getElementById('quiz-card').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ===== 復習問題読み込み =====
+    async function loadReview() {
+      if (!currentUser) { alert('ユーザーを選択してください'); return; }
+      const res = await fetch(`/review?user=${encodeURIComponent(currentUser)}`);
+      const data = await res.json();
+      if (!data.questions.length) {
+        alert('苦手問題がまだありません！まず写真から問題を解いてみよう😊');
+        return;
+      }
+      answers = data.questions;
+      currentSubject = "復習";
+      document.getElementById('quiz-title').textContent = `🔁 苦手問題（${data.questions.length}問）`;
+      renderQuestions(data.questions);
+      document.getElementById('quiz-card').style.display = 'block';
+      document.getElementById('score-area').style.display = 'none';
+      document.getElementById('feedback-area').style.display = 'none';
       document.getElementById('submit-btn').style.display = 'block';
       document.getElementById('quiz-card').scrollIntoView({ behavior: 'smooth' });
     }
@@ -175,18 +320,23 @@
       const area = document.getElementById('questions-area');
       area.innerHTML = '';
       questions.forEach((q, i) => {
+        const subjectTag = q.subject ? `<span style="font-size:11px; color:#888; margin-left:6px;">[${q.subject}]</span>` : '';
         area.innerHTML += `
           <div class="question-block" id="q-${i}">
-            <div class="question-text">Q${i+1}. ${q.question}</div>
+            <div class="question-text">Q${i+1}. ${q.question}${subjectTag}</div>
             <input class="answer-input" type="text" id="ans-${i}" placeholder="答えを入力">
             <div class="result-msg" id="msg-${i}"></div>
           </div>`;
       });
     }
 
-    function submitAll() {
+    // ===== 答え合わせ =====
+    async function submitAll() {
       let correct = 0;
+      const wrongQuestions = [];
+      const masteredQuestions = [];
       const normalize = s => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).trim();
+
       answers.forEach((q, i) => {
         const userAns = document.getElementById(`ans-${i}`).value.trim();
         const msg = document.getElementById(`msg-${i}`);
@@ -195,26 +345,64 @@
           correct++;
           msg.textContent = '⭕ 正解！';
           msg.className = 'result-msg correct';
+          if (isReviewMode) masteredQuestions.push(q.question);
         } else {
           msg.textContent = `❌ 不正解　正解：${q.answer}`;
           msg.className = 'result-msg incorrect';
+          wrongQuestions.push({ question: q.question, answer: q.answer, user_answer: userAns, subject: q.subject || currentSubject });
         }
       });
+
       const scoreArea = document.getElementById('score-area');
       scoreArea.style.display = 'block';
       scoreArea.textContent = `結果：${answers.length}問中 ${correct}問正解！`;
       document.getElementById('submit-btn').style.display = 'none';
       scoreArea.scrollIntoView({ behavior: 'smooth' });
+
+      // 間違いを保存
+      if (currentUser && wrongQuestions.length > 0 && !isReviewMode) {
+        await fetch('/save_result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: currentUser, subject: currentSubject, wrong_questions: wrongQuestions })
+        });
+      }
+
+      // 復習モードで正解した問題を苦手リストから除外
+      if (currentUser && isReviewMode && masteredQuestions.length > 0) {
+        await fetch('/review_correct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: currentUser, mastered_questions: masteredQuestions })
+        });
+      }
+
+      // Geminiフィードバック取得
+      if (wrongQuestions.length > 0) {
+        const fbRes = await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: currentUser, wrong_questions: wrongQuestions })
+        });
+        const fbData = await fbRes.json();
+        document.getElementById('feedback-text').textContent = fbData.feedback;
+        document.getElementById('feedback-area').style.display = 'block';
+      }
     }
 
     function reset() {
       document.getElementById('quiz-card').style.display = 'none';
       document.getElementById('submit-btn').style.display = 'block';
+      document.getElementById('feedback-area').style.display = 'none';
       document.getElementById('image-input').value = '';
       document.getElementById('preview-area').innerHTML = '';
       document.getElementById('upload-placeholder').style.display = 'block';
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    // 初期化
+    loadUsers();
+    updateQuestionType();
   </script>
 </body>
 </html>

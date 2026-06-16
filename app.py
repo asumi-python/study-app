@@ -1,5 +1,7 @@
 import os
+import json
 import base64
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from dotenv import load_dotenv
@@ -8,6 +10,18 @@ load_dotenv()
 
 app = Flask(__name__)
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {"users": [], "results": {}}
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_data(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def build_prompt(subject, question_type, count):
     if subject == "国語（漢字）":
@@ -155,6 +169,24 @@ def parse_questions(text):
 def index():
     return render_template("index.html")
 
+@app.route("/users", methods=["GET"])
+def get_users():
+    data = load_data()
+    return jsonify({"users": data["users"]})
+
+@app.route("/users", methods=["POST"])
+def add_user():
+    name = request.json.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "名前を入力してください"}), 400
+    data = load_data()
+    if name in data["users"]:
+        return jsonify({"error": "同じ名前がすでにあります"}), 400
+    data["users"].append(name)
+    data["results"][name] = []
+    save_data(data)
+    return jsonify({"ok": True})
+
 @app.route("/generate", methods=["POST"])
 def generate():
     images_files = request.files.getlist("images")
@@ -173,6 +205,96 @@ def generate():
     questions = parse_questions(raw_text)
 
     return jsonify({"questions": questions, "raw": raw_text})
+
+@app.route("/save_result", methods=["POST"])
+def save_result():
+    body = request.json
+    user = body.get("user")
+    subject = body.get("subject")
+    wrong_questions = body.get("wrong_questions", [])
+
+    if not user:
+        return jsonify({"error": "ユーザーが未選択です"}), 400
+
+    data = load_data()
+    if user not in data["results"]:
+        data["results"][user] = []
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    for q in wrong_questions:
+        data["results"][user].append({
+            "date": today,
+            "subject": subject,
+            "question": q["question"],
+            "answer": q["answer"],
+            "user_answer": q["user_answer"]
+        })
+    save_data(data)
+    return jsonify({"ok": True})
+
+@app.route("/review", methods=["GET"])
+def review():
+    user = request.args.get("user")
+    if not user:
+        return jsonify({"error": "ユーザーが未選択です"}), 400
+    data = load_data()
+    wrong = data["results"].get(user, [])
+    seen = set()
+    unique = []
+    for q in wrong:
+        key = q["question"]
+        if key not in seen:
+            seen.add(key)
+            unique.append({"question": q["question"], "answer": q["answer"], "subject": q["subject"]})
+    return jsonify({"questions": unique})
+
+@app.route("/review_correct", methods=["POST"])
+def review_correct():
+    body = request.json
+    user = body.get("user")
+    mastered = body.get("mastered_questions", [])
+
+    data = load_data()
+    if user in data["results"]:
+        data["results"][user] = [
+            r for r in data["results"][user]
+            if r["question"] not in mastered
+        ]
+    save_data(data)
+    return jsonify({"ok": True})
+
+@app.route("/feedback", methods=["POST"])
+def feedback():
+    body = request.json
+    user = body.get("user")
+    wrong_questions = body.get("wrong_questions", [])
+
+    if not wrong_questions:
+        return jsonify({"feedback": "間違いがありませんでした。素晴らしい！"})
+
+    wrong_summary = "\n".join([
+        f"・科目：{q['subject']}　問題：{q['question']}　正解：{q['answer']}"
+        for q in wrong_questions
+    ])
+
+    prompt = f"""
+あなたは優しくて頼りになる家庭教師です。
+{user}さんが今回間違えた問題は以下の通りです。
+
+{wrong_summary}
+
+以下の3点を、中高生にわかりやすく、励ましながら伝えてください：
+1. 間違いの傾向（どんなパターンで間違えているか）
+2. 具体的な対策・勉強方法
+3. 応援メッセージ
+
+200文字以内で簡潔にまとめてください。
+"""
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[prompt]
+    )
+    return jsonify({"feedback": response.text})
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
