@@ -23,12 +23,21 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-def build_prompt(subject, question_type, count):
+def build_prompt(subject, question_type):
+    important_note = """
+【重要ポイントの見つけ方】
+- 赤字・赤マーカー・太字・下線・囲み線などで強調されている箇所
+- 表や図の中の重要な用語・数値
+- 繰り返し登場するキーワード
+これらを中心に、画像1枚あたり5〜15問程度を目安に、内容の量に応じて問題数を自分で決めてください。
+"""
     if subject == "国語（漢字）":
         if question_type == "読み":
             return f"""
 あなたは国語の優秀な教師です。
-画像から漢字の「読み問題」を{count}問作成してください。
+画像に登場する漢字・熟語の中から、特に重要そうなものを選んで「読み問題」を作成してください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -36,13 +45,14 @@ Q1.
 答え：よみかた
 
 【ルール】
-- 画像に登場する漢字・熟語から出題する
 - 答えはひらがなで
 """
         elif question_type == "書き":
             return f"""
 あなたは国語の優秀な教師です。
-画像から漢字の「書き問題」を{count}問作成してください。
+画像に登場する漢字・熟語の中から、特に重要そうなものを選んで「書き問題」を作成してください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -50,14 +60,14 @@ Q1.
 答え：漢字
 
 【ルール】
-- 画像に登場する漢字・熟語から出題する
 - 問題文はひらがな・カタカナで、答えは漢字で
 """
         else:
             return f"""
 あなたは国語の優秀な教師です。
-画像から漢字の「読み問題」と「書き問題」を合わせて{count}問作成してください。
-読み問題と書き問題を交互に出してください。
+画像に登場する漢字・熟語の中から、特に重要そうなものを選んで「読み問題」と「書き問題」を交互に作成してください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -75,8 +85,10 @@ Q2.
         if question_type == "日本語→英語":
             return f"""
 あなたは英語の優秀な教師です。
-画像から英単語の問題を{count}問作成してください。
+画像に登場する英単語の中から、特に重要そうなものを選んで問題を作成してください。
 日本語を見て英単語を答える問題を作ってください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -89,8 +101,10 @@ Q1.
         elif question_type == "英語→日本語":
             return f"""
 あなたは英語の優秀な教師です。
-画像から英単語の問題を{count}問作成してください。
+画像に登場する英単語の中から、特に重要そうなものを選んで問題を作成してください。
 英単語を見て日本語の意味を答える問題を作ってください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -103,8 +117,10 @@ Q1.
         else:
             return f"""
 あなたは英語の優秀な教師です。
-画像から英単語の問題を{count}問作成してください。
+画像に登場する英単語の中から、特に重要そうなものを選んで問題を作成してください。
 日本語→英語と英語→日本語を交互に出してください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -119,7 +135,9 @@ Q2.
         return f"""
 あなたは{subject}の優秀な教師です。
 画像は高校生の{subject}のワークやノートです。
-この内容から穴埋め問題を{count}問作成してください。
+この内容から穴埋め問題を作成してください。
+
+{important_note}
 
 【出力形式】
 Q1.
@@ -133,8 +151,8 @@ Q1.
 - 答えは簡潔に
 """
 
-def generate_questions(images, subject, question_type, count):
-    prompt = build_prompt(subject, question_type, count)
+def generate_questions(images, subject, question_type):
+    prompt = build_prompt(subject, question_type)
     contents = [prompt]
     for image_bytes, mime_type in images:
         contents.append({
@@ -192,7 +210,6 @@ def generate():
     images_files = request.files.getlist("images")
     subject = request.form.get("subject", "社会")
     question_type = request.form.get("question_type", "")
-    count = request.form.get("count", "10")
 
     if not images_files:
         return jsonify({"error": "画像がありません"}), 400
@@ -201,7 +218,7 @@ def generate():
     for f in images_files:
         images.append((f.read(), f.mimetype))
 
-    raw_text = generate_questions(images, subject, question_type, count)
+    raw_text = generate_questions(images, subject, question_type)
     questions = parse_questions(raw_text)
 
     return jsonify({"questions": questions, "raw": raw_text})
